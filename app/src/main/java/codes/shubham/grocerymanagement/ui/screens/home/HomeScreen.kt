@@ -26,6 +26,7 @@ import codes.shubham.grocerymanagement.ui.components.ProductCard
 fun HomeScreen(
     onNavigateToScan: () -> Unit,
     onNavigateToProduct: (Long) -> Unit,
+    onNavigateToAudit: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAddEdit: () -> Unit,
     viewModel: HomeViewModel = koinViewModel()
@@ -63,6 +64,9 @@ fun HomeScreen(
                     actions = {
                         IconButton(onClick = { viewModel.setSearchActive(true) }) {
                             Icon(Icons.Default.Search, contentDescription = "Search")
+                        }
+                        IconButton(onClick = onNavigateToAudit) {
+                            Icon(Icons.Default.FactCheck, contentDescription = "Audit inventory")
                         }
                         IconButton(onClick = onNavigateToSettings) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings")

@@ -7,6 +7,7 @@ import codes.shubham.grocerymanagement.data.remote.GeminiService
 import codes.shubham.grocerymanagement.data.remote.ScanResultStore
 import codes.shubham.grocerymanagement.data.repository.GroceryRepository
 import codes.shubham.grocerymanagement.ui.screens.addedit.AddEditProductViewModel
+import codes.shubham.grocerymanagement.ui.screens.audit.AuditViewModel
 import codes.shubham.grocerymanagement.ui.screens.home.HomeViewModel
 import codes.shubham.grocerymanagement.ui.screens.product.ProductDetailViewModel
 import codes.shubham.grocerymanagement.ui.screens.scan.ScanViewModel
@@ -28,5 +29,6 @@ val appModule = module {
     viewModel { ScanViewModel(get(), get(), get(), get()) }
     viewModel { AddEditProductViewModel(get(), get()) }
     viewModel { ProductDetailViewModel(get()) }
+    viewModel { AuditViewModel(get()) }
     viewModel { SettingsViewModel(get()) }
 }

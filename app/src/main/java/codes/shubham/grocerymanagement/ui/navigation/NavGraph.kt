@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import codes.shubham.grocerymanagement.ui.screens.addedit.AddEditProductScreen
+import codes.shubham.grocerymanagement.ui.screens.audit.AuditScreen
 import codes.shubham.grocerymanagement.ui.screens.home.HomeScreen
 import codes.shubham.grocerymanagement.ui.screens.product.ProductDetailScreen
 import codes.shubham.grocerymanagement.ui.screens.scan.ScanScreen
@@ -22,6 +23,7 @@ fun NavGraph() {
             HomeScreen(
                 onNavigateToScan = { navController.navigate(Screen.Scan.route) },
                 onNavigateToProduct = { id -> navController.navigate(Screen.ProductDetail.createRoute(id)) },
+                onNavigateToAudit = { navController.navigate(Screen.Audit.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToAddEdit = { navController.navigate(Screen.AddEditProduct.createRoute()) }
             )
@@ -65,6 +67,10 @@ fun NavGraph() {
 
         composable(Screen.Settings.route) {
             SettingsScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.Audit.route) {
+            AuditScreen(onNavigateBack = { navController.popBackStack() })
         }
     }
 }
