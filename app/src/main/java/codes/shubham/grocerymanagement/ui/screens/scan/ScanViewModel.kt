@@ -2,6 +2,7 @@ package codes.shubham.grocerymanagement.ui.screens.scan
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
@@ -68,7 +69,7 @@ class ScanViewModel(
         imageCapture = capture
     }
 
-    @OptIn(androidx.camera.core.ExperimentalGetImage::class)
+    @ExperimentalGetImage
     fun processImageForBarcode(imageProxy: ImageProxy) {
         if (isBarcodeProcessing || _uiState.value.detectedBarcode != null) {
             imageProxy.close()

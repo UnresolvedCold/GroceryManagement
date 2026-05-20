@@ -254,30 +254,49 @@ fun ProductDetailScreen(
 
 @Composable
 private fun TransactionRow(tx: Transaction, unit: String) {
+    val containerColor = when (tx.type) {
+        TransactionType.ADD -> MaterialTheme.colorScheme.primaryContainer
+        TransactionType.CONSUME -> MaterialTheme.colorScheme.secondaryContainer
+        TransactionType.AUDIT -> MaterialTheme.colorScheme.tertiaryContainer
+    }
+    val contentColor = when (tx.type) {
+        TransactionType.ADD -> MaterialTheme.colorScheme.onPrimaryContainer
+        TransactionType.CONSUME -> MaterialTheme.colorScheme.onSecondaryContainer
+        TransactionType.AUDIT -> MaterialTheme.colorScheme.onTertiaryContainer
+    }
+    val icon = when (tx.type) {
+        TransactionType.ADD -> Icons.Default.Add
+        TransactionType.CONSUME -> Icons.Default.Remove
+        TransactionType.AUDIT -> Icons.Default.FactCheck
+    }
+    val quantityLabel = when (tx.type) {
+        TransactionType.ADD -> "+${tx.quantity} $unit"
+        TransactionType.CONSUME -> "-${tx.quantity} $unit"
+        TransactionType.AUDIT -> "Audited to ${tx.quantity} $unit"
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Surface(
-            color = if (tx.type == TransactionType.ADD) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.secondaryContainer,
+            color = containerColor,
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier.size(36.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = if (tx.type == TransactionType.ADD) Icons.Default.Add else Icons.Default.Remove,
+                    imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
-                    tint = if (tx.type == TransactionType.ADD) MaterialTheme.colorScheme.onPrimaryContainer
-                           else MaterialTheme.colorScheme.onSecondaryContainer
+                    tint = contentColor
                 )
             }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "${if (tx.type == TransactionType.ADD) "+" else "-"}${tx.quantity} $unit",
+                quantityLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium
             )
@@ -287,6 +306,12 @@ private fun TransactionRow(tx: Transaction, unit: String) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        tx.notes?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        tx.notes?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

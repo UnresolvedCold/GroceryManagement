@@ -2,7 +2,7 @@ package codes.shubham.grocerymanagement.domain.model
 
 import java.time.LocalDate
 
-enum class TransactionType { ADD, CONSUME }
+enum class TransactionType { ADD, CONSUME, AUDIT }
 
 data class Transaction(
     val id: Long = 0,

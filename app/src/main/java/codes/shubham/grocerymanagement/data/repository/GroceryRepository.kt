@@ -61,6 +61,25 @@ class GroceryRepository(
         return newQuantity
     }
 
+    suspend fun auditQuantity(
+        productId: Long,
+        countedQuantity: Double,
+        notes: String? = null
+    ): Double {
+        productDao.getProductByIdSnapshot(productId) ?: return 0.0
+        val newQuantity = maxOf(0.0, countedQuantity)
+        productDao.updateQuantity(productId, newQuantity)
+        transactionDao.insertTransaction(
+            TransactionEntity(
+                productId = productId,
+                type = TransactionType.AUDIT.name,
+                quantity = newQuantity,
+                notes = notes
+            )
+        )
+        return newQuantity
+    }
+
     fun getTransactionsForProduct(productId: Long): Flow<List<Transaction>> =
         transactionDao.getTransactionsForProduct(productId).map { list ->
             list.map { e ->
