@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import codes.shubham.grocerymanagement.domain.model.ConsumptionSuggestion
 import codes.shubham.grocerymanagement.domain.model.Product
 import codes.shubham.grocerymanagement.ui.components.CompactProductCard
 import codes.shubham.grocerymanagement.ui.components.ProductCard
@@ -152,6 +153,25 @@ fun HomeScreen(
                 }
             }
 
+            if (state.consumptionSuggestions.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        title = "Suggested Consumption",
+                        icon = Icons.Default.AutoGraph,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                item {
+                    ConsumptionSuggestionsCard(
+                        suggestions = state.consumptionSuggestions,
+                        onApply = viewModel::applyConsumptionSuggestion,
+                        onApplyAll = viewModel::applyAllConsumptionSuggestions,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -187,6 +207,66 @@ fun HomeScreen(
 }
 
 @Composable
+private fun ConsumptionSuggestionsCard(
+    suggestions: List<ConsumptionSuggestion>,
+    onApply: (ConsumptionSuggestion) -> Unit,
+    onApplyAll: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Today's predicted usage", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Based on recent consume history",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                TextButton(onClick = onApplyAll) {
+                    Icon(Icons.Default.DoneAll, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Apply all")
+                }
+            }
+
+            suggestions.take(5).forEach { suggestion ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(suggestion.productName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Text(
+                            "${formatQuantity(suggestion.quantity)} ${suggestion.unit}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = { onApply(suggestion) }) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = "Apply ${suggestion.productName}")
+                    }
+                }
+            }
+
+            if (suggestions.size > 5) {
+                Text(
+                    "+${suggestions.size - 5} more suggestions",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: androidx.compose.ui.graphics.Color) {
     Row(
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
@@ -197,6 +277,13 @@ private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vect
         Text(text = title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = color)
     }
 }
+
+private fun formatQuantity(quantity: Double): String =
+    if (quantity == quantity.toLong().toDouble()) {
+        quantity.toLong().toString()
+    } else {
+        "%.2f".format(quantity)
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

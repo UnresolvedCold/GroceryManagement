@@ -73,6 +73,72 @@ fun SettingsScreen(
             }
 
             item {
+                SettingsSectionTitle("Regressive Consumption")
+            }
+
+            item {
+                Card(shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.AutoGraph, null, tint = MaterialTheme.colorScheme.primary)
+                            Column(Modifier.weight(1f)) {
+                                Text("Daily suggestions", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "Suggest inventory consumed today from recent consume history",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = state.regressiveConsumptionEnabled,
+                                onCheckedChange = viewModel::onRegressiveConsumptionEnabledChange
+                            )
+                        }
+
+                        OutlinedTextField(
+                            value = state.regressiveConsumptionLookbackDays,
+                            onValueChange = viewModel::onRegressiveLookbackDaysChange,
+                            label = { Text("Lookback Days") },
+                            leadingIcon = { Icon(Icons.Default.History, null) },
+                            supportingText = { Text("Use the last this many days of consume entries") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            enabled = state.regressiveConsumptionEnabled,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = state.regressiveConsumptionReminderHour,
+                                onValueChange = viewModel::onRegressiveReminderHourChange,
+                                label = { Text("Hour") },
+                                leadingIcon = { Icon(Icons.Default.Schedule, null) },
+                                supportingText = { Text("0-23") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                enabled = state.regressiveConsumptionEnabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                            OutlinedTextField(
+                                value = state.regressiveConsumptionReminderMinute,
+                                onValueChange = viewModel::onRegressiveReminderMinuteChange,
+                                label = { Text("Minute") },
+                                supportingText = { Text("0-59") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                enabled = state.regressiveConsumptionEnabled,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
                 SettingsSectionTitle("AI Photo Analysis")
             }
 

@@ -6,6 +6,7 @@ import codes.shubham.grocerymanagement.data.preferences.UserPreferencesRepositor
 import codes.shubham.grocerymanagement.data.remote.GeminiService
 import codes.shubham.grocerymanagement.data.remote.ScanResultStore
 import codes.shubham.grocerymanagement.data.repository.GroceryRepository
+import codes.shubham.grocerymanagement.notifications.ConsumptionReminderScheduler
 import codes.shubham.grocerymanagement.ui.screens.addedit.AddEditProductViewModel
 import codes.shubham.grocerymanagement.ui.screens.audit.AuditViewModel
 import codes.shubham.grocerymanagement.ui.screens.home.HomeViewModel
@@ -22,6 +23,7 @@ val appModule = module {
     single { get<GroceryDatabase>().transactionDao() }
     single { GroceryRepository(get(), get()) }
     single { UserPreferencesRepository(androidContext()) }
+    single { ConsumptionReminderScheduler(androidContext()) }
     single { GeminiService() }
     single { ScanResultStore() }
 
@@ -30,5 +32,5 @@ val appModule = module {
     viewModel { AddEditProductViewModel(get(), get()) }
     viewModel { ProductDetailViewModel(get()) }
     viewModel { AuditViewModel(get()) }
-    viewModel { SettingsViewModel(get()) }
+    viewModel { SettingsViewModel(get(), get()) }
 }
