@@ -65,7 +65,7 @@ class AddEditProductViewModel(
                 _uiState.update {
                     it.copy(
                         id = p.id,
-                        barcode = p.barcode ?: "",
+                        barcode = p.barcodes.joinToString("\n"),
                         name = p.name,
                         brand = p.brand ?: "",
                         category = p.category,
@@ -103,7 +103,7 @@ class AddEditProductViewModel(
         viewModelScope.launch {
             val product = Product(
                 id = state.id,
-                barcode = state.barcode.takeIf { it.isNotBlank() },
+                barcodes = parseBarcodes(state.barcode),
                 name = state.name.trim(),
                 brand = state.brand.takeIf { it.isNotBlank() },
                 category = state.category,
@@ -118,4 +118,13 @@ class AddEditProductViewModel(
             _uiState.update { it.copy(isSaving = false, savedSuccessfully = true) }
         }
     }
+
+    private fun parseBarcodes(value: String): List<String> =
+        value
+            .lineSequence()
+            .flatMap { it.split(',').asSequence() }
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .toList()
 }

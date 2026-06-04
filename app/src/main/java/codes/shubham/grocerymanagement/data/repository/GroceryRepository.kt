@@ -25,7 +25,10 @@ class GroceryRepository(
         productDao.getProductById(id).map { it?.let(::entityToProduct) }
 
     suspend fun getProductByBarcode(barcode: String): Product? =
-        productDao.getProductByBarcode(barcode)?.let(::entityToProduct)
+        barcode.trim()
+            .takeIf { it.isNotEmpty() }
+            ?.let { productDao.getProductByBarcode(it) }
+            ?.let(::entityToProduct)
 
     fun getLowStockProducts(): Flow<List<Product>> =
         productDao.getLowStockProducts().map { list -> list.map(::entityToProduct) }
@@ -161,7 +164,7 @@ class GroceryRepository(
 
     private fun entityToProduct(e: ProductEntity) = Product(
         id = e.id,
-        barcode = e.barcode,
+        barcodes = parseBarcodes(e.barcode),
         name = e.name,
         brand = e.brand,
         category = e.category,
@@ -177,7 +180,7 @@ class GroceryRepository(
 
     private fun productToEntity(p: Product) = ProductEntity(
         id = p.id,
-        barcode = p.barcode,
+        barcode = encodeBarcodes(p.barcodes),
         name = p.name,
         brand = p.brand,
         category = p.category,
@@ -190,4 +193,20 @@ class GroceryRepository(
         createdAt = p.createdAt,
         updatedAt = System.currentTimeMillis()
     )
+
+    private fun parseBarcodes(raw: String?): List<String> =
+        raw.orEmpty()
+            .lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .toList()
+
+    private fun encodeBarcodes(barcodes: List<String>): String? =
+        barcodes
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .joinToString(separator = "\n")
+            .takeIf { it.isNotEmpty() }
 }

@@ -16,7 +16,12 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :id")
     suspend fun getProductByIdSnapshot(id: Long): ProductEntity?
 
-    @Query("SELECT * FROM products WHERE barcode = :barcode LIMIT 1")
+    @Query("""
+        SELECT * FROM products
+        WHERE barcode IS NOT NULL
+        AND instr(char(10) || barcode || char(10), char(10) || :barcode || char(10)) > 0
+        LIMIT 1
+    """)
     suspend fun getProductByBarcode(barcode: String): ProductEntity?
 
     @Query("""
@@ -38,6 +43,7 @@ interface ProductDao {
         SELECT * FROM products
         WHERE name LIKE '%' || :query || '%'
         OR brand LIKE '%' || :query || '%'
+        OR barcode LIKE '%' || :query || '%'
         ORDER BY name ASC
     """)
     fun searchProducts(query: String): Flow<List<ProductEntity>>

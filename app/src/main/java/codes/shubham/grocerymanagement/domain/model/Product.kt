@@ -4,7 +4,7 @@ import java.time.LocalDate
 
 data class Product(
     val id: Long = 0,
-    val barcode: String? = null,
+    val barcodes: List<String> = emptyList(),
     val name: String,
     val brand: String? = null,
     val category: String = "Other",
@@ -16,7 +16,10 @@ data class Product(
     val notes: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
-)
+) {
+    val barcode: String?
+        get() = barcodes.firstOrNull()
+}
 
 val PRODUCT_CATEGORIES = listOf(
     "Dairy", "Produce", "Bakery", "Beverages",

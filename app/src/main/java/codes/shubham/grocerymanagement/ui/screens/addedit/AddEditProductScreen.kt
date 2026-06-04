@@ -233,9 +233,10 @@ fun AddEditProductScreen(
                 OutlinedTextField(
                     value = state.barcode,
                     onValueChange = viewModel::onBarcodeChange,
-                    label = { Text("Barcode") },
+                    label = { Text("Barcodes") },
                     leadingIcon = { Icon(Icons.Default.QrCode, null) },
-                    singleLine = true,
+                    minLines = 2,
+                    maxLines = 4,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

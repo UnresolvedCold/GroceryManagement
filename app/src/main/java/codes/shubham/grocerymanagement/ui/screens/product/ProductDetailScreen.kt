@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,7 +24,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.LocalDate
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ProductDetailScreen(
     productId: Long,
@@ -121,16 +122,25 @@ fun ProductDetailScreen(
                         if (!product.brand.isNullOrBlank()) {
                             Text(product.brand, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             SuggestionChip(
                                 onClick = {},
                                 label = { Text(product.category) },
                                 icon = { Icon(Icons.Default.Category, null, Modifier.size(16.dp)) }
                             )
-                            if (!product.barcode.isNullOrBlank()) {
+                            product.barcodes.forEach { barcode ->
                                 SuggestionChip(
                                     onClick = {},
-                                    label = { Text(product.barcode) },
+                                    label = {
+                                        Text(
+                                            text = barcode,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    },
                                     icon = { Icon(Icons.Default.QrCode, null, Modifier.size(16.dp)) }
                                 )
                             }
