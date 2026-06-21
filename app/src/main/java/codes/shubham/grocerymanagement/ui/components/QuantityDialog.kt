@@ -12,10 +12,14 @@ import androidx.compose.ui.unit.dp
 fun QuantityDialog(
     title: String,
     unit: String,
+    initialQuantity: Double? = null,
+    confirmLabel: String = "Confirm",
     onConfirm: (Double, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var quantity by remember { mutableStateOf("") }
+    var quantity by remember(initialQuantity) {
+        mutableStateOf(initialQuantity?.formatQuantity().orEmpty())
+    }
     var notes by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -48,8 +52,11 @@ fun QuantityDialog(
                 val qty = quantity.toDoubleOrNull()
                 if (qty == null || qty <= 0) { error = "Enter a valid quantity"; return@Button }
                 onConfirm(qty, notes.takeIf { it.isNotBlank() })
-            }) { Text("Confirm") }
+            }) { Text(confirmLabel) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
+
+private fun Double.formatQuantity(): String =
+    if (this == toLong().toDouble()) toLong().toString() else "%.2f".format(this)

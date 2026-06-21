@@ -73,7 +73,7 @@ fun SettingsScreen(
             }
 
             item {
-                SettingsSectionTitle("Regressive Consumption")
+                SettingsSectionTitle("Consumption Suggestions")
             }
 
             item {

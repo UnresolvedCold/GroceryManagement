@@ -11,34 +11,47 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE product_id = :productId ORDER BY timestamp DESC")
     fun getTransactionsForProduct(productId: Long): Flow<List<TransactionEntity>>
 
+    @Query("SELECT * FROM transactions WHERE id = :transactionId")
+    suspend fun getTransactionById(transactionId: Long): TransactionEntity?
+
     @Query("""
         SELECT
             p.id AS productId,
             p.name AS productName,
             p.unit AS unit,
             p.quantity AS currentQuantity,
-            SUM(t.quantity) / :lookbackDays AS suggestedQuantity
-        FROM transactions t
-        INNER JOIN products p ON p.id = t.product_id
-        WHERE t.type = :type
-        AND t.timestamp >= :sinceTimestamp
-        AND t.timestamp < :todayStartTimestamp
-        AND p.quantity > 0
+            (
+                SELECT candidate.quantity
+                FROM transactions candidate
+                WHERE candidate.product_id = p.id
+                AND candidate.type = :type
+                AND candidate.timestamp >= :sinceTimestamp
+                AND candidate.timestamp < :todayStartTimestamp
+                GROUP BY candidate.quantity
+                ORDER BY COUNT(*) DESC, MAX(candidate.timestamp) DESC, candidate.quantity DESC
+                LIMIT 1
+            ) AS suggestedQuantity
+        FROM products p
+        WHERE p.quantity > 0
+        AND EXISTS (
+            SELECT 1 FROM transactions t
+            WHERE t.product_id = p.id
+            AND t.type = :type
+            AND t.timestamp >= :sinceTimestamp
+            AND t.timestamp < :todayStartTimestamp
+        )
         AND NOT EXISTS (
             SELECT 1 FROM transactions today
             WHERE today.product_id = p.id
             AND today.type = :type
             AND today.timestamp >= :todayStartTimestamp
         )
-        GROUP BY p.id, p.name, p.unit, p.quantity
-        HAVING suggestedQuantity > 0
         ORDER BY suggestedQuantity DESC
     """)
     fun getConsumptionSuggestionRows(
         sinceTimestamp: Long,
         todayStartTimestamp: Long,
-        type: String,
-        lookbackDays: Double
+        type: String
     ): Flow<List<ConsumptionSuggestionRow>>
 
     @Query("""
@@ -47,30 +60,55 @@ interface TransactionDao {
             p.name AS productName,
             p.unit AS unit,
             p.quantity AS currentQuantity,
-            SUM(t.quantity) / :lookbackDays AS suggestedQuantity
-        FROM transactions t
-        INNER JOIN products p ON p.id = t.product_id
-        WHERE t.type = :type
-        AND t.timestamp >= :sinceTimestamp
-        AND t.timestamp < :todayStartTimestamp
-        AND p.quantity > 0
+            (
+                SELECT candidate.quantity
+                FROM transactions candidate
+                WHERE candidate.product_id = p.id
+                AND candidate.type = :type
+                AND candidate.timestamp >= :sinceTimestamp
+                AND candidate.timestamp < :todayStartTimestamp
+                GROUP BY candidate.quantity
+                ORDER BY COUNT(*) DESC, MAX(candidate.timestamp) DESC, candidate.quantity DESC
+                LIMIT 1
+            ) AS suggestedQuantity
+        FROM products p
+        WHERE p.quantity > 0
+        AND EXISTS (
+            SELECT 1 FROM transactions t
+            WHERE t.product_id = p.id
+            AND t.type = :type
+            AND t.timestamp >= :sinceTimestamp
+            AND t.timestamp < :todayStartTimestamp
+        )
         AND NOT EXISTS (
             SELECT 1 FROM transactions today
             WHERE today.product_id = p.id
             AND today.type = :type
             AND today.timestamp >= :todayStartTimestamp
         )
-        GROUP BY p.id, p.name, p.unit, p.quantity
-        HAVING suggestedQuantity > 0
         ORDER BY suggestedQuantity DESC
     """)
     suspend fun getConsumptionSuggestionRowsSnapshot(
         sinceTimestamp: Long,
         todayStartTimestamp: Long,
-        type: String,
-        lookbackDays: Double
+        type: String
     ): List<ConsumptionSuggestionRow>
 
     @Insert
     suspend fun insertTransaction(transaction: TransactionEntity): Long
+
+    @Query("""
+        UPDATE transactions
+        SET quantity = :quantity, timestamp = :timestamp, notes = :notes
+        WHERE id = :transactionId
+    """)
+    suspend fun updateConsumptionTransaction(
+        transactionId: Long,
+        quantity: Double,
+        timestamp: Long,
+        notes: String?
+    )
+
+    @Query("DELETE FROM transactions WHERE id = :transactionId")
+    suspend fun deleteTransaction(transactionId: Long)
 }

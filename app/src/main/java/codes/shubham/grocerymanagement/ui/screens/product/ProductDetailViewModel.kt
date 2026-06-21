@@ -8,6 +8,7 @@ import codes.shubham.grocerymanagement.domain.model.Transaction
 import codes.shubham.grocerymanagement.domain.model.TransactionType
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 data class ProductDetailUiState(
     val product: Product? = null,
@@ -15,6 +16,7 @@ data class ProductDetailUiState(
     val isLoading: Boolean = true,
     val showAddDialog: Boolean = false,
     val showConsumeDialog: Boolean = false,
+    val editingConsumptionEntry: Transaction? = null,
     val deleted: Boolean = false
 )
 
@@ -25,7 +27,16 @@ class ProductDetailViewModel(
     private val _productId = MutableStateFlow<Long?>(null)
     private val _showAddDialog = MutableStateFlow(false)
     private val _showConsumeDialog = MutableStateFlow(false)
+    private val _editingConsumptionEntry = MutableStateFlow<Transaction?>(null)
     private val _deleted = MutableStateFlow(false)
+
+    private val dialogState = combine(
+        _showAddDialog,
+        _showConsumeDialog,
+        _editingConsumptionEntry
+    ) { addDialog, consumeDialog, editingConsumptionEntry ->
+        Triple(addDialog, consumeDialog, editingConsumptionEntry)
+    }
 
     val uiState: StateFlow<ProductDetailUiState> = combine(
         _productId.filterNotNull().flatMapLatest { id ->
@@ -34,16 +45,16 @@ class ProductDetailViewModel(
         _productId.filterNotNull().flatMapLatest { id ->
             groceryRepository.getTransactionsForProduct(id)
         },
-        _showAddDialog,
-        _showConsumeDialog,
+        dialogState,
         _deleted
-    ) { product, transactions, addDialog, consumeDialog, deleted ->
+    ) { product, transactions, dialogs, deleted ->
         ProductDetailUiState(
             product = product,
             transactions = transactions,
             isLoading = false,
-            showAddDialog = addDialog,
-            showConsumeDialog = consumeDialog,
+            showAddDialog = dialogs.first,
+            showConsumeDialog = dialogs.second,
+            editingConsumptionEntry = dialogs.third,
             deleted = deleted
         )
     }.stateIn(
@@ -61,6 +72,7 @@ class ProductDetailViewModel(
     fun dismissDialogs() {
         _showAddDialog.value = false
         _showConsumeDialog.value = false
+        _editingConsumptionEntry.value = null
     }
 
     fun addQuantity(amount: Double, notes: String?) {
@@ -71,12 +83,33 @@ class ProductDetailViewModel(
         dismissDialogs()
     }
 
-    fun consumeQuantity(amount: Double, notes: String?) {
+    fun consumeQuantity(amount: Double, notes: String?, date: LocalDate = LocalDate.now()) {
         val id = _productId.value ?: return
         viewModelScope.launch {
-            groceryRepository.adjustQuantity(id, -amount, TransactionType.CONSUME, notes)
+            groceryRepository.addConsumptionEntry(id, amount, date, notes)
         }
         dismissDialogs()
+    }
+
+    fun editConsumptionEntry(entry: Transaction) {
+        if (entry.type == TransactionType.CONSUME) {
+            _editingConsumptionEntry.value = entry
+        }
+    }
+
+    fun updateConsumptionEntry(amount: Double, notes: String?, date: LocalDate) {
+        val entry = _editingConsumptionEntry.value ?: return
+        viewModelScope.launch {
+            groceryRepository.updateConsumptionEntry(entry.id, amount, date, notes)
+        }
+        dismissDialogs()
+    }
+
+    fun deleteConsumptionEntry(entry: Transaction) {
+        if (entry.type != TransactionType.CONSUME) return
+        viewModelScope.launch {
+            groceryRepository.deleteConsumptionEntry(entry.id)
+        }
     }
 
     fun deleteProduct() {

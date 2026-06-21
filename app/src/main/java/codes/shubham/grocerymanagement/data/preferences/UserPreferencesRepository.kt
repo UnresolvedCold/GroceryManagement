@@ -8,9 +8,11 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_prefs")
 
@@ -32,6 +34,8 @@ class UserPreferencesRepository(private val context: Context) {
     private val REGRESSIVE_CONSUMPTION_LOOKBACK_DAYS = intPreferencesKey("regressive_consumption_lookback_days")
     private val REGRESSIVE_CONSUMPTION_REMINDER_HOUR = intPreferencesKey("regressive_consumption_reminder_hour")
     private val REGRESSIVE_CONSUMPTION_REMINDER_MINUTE = intPreferencesKey("regressive_consumption_reminder_minute")
+    private val DISMISSED_CONSUMPTION_SUGGESTIONS_DATE = stringPreferencesKey("dismissed_consumption_suggestions_date")
+    private val DISMISSED_CONSUMPTION_SUGGESTION_IDS = stringSetPreferencesKey("dismissed_consumption_suggestion_ids")
 
     val userPreferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
         UserPreferences(
@@ -43,6 +47,17 @@ class UserPreferencesRepository(private val context: Context) {
             regressiveConsumptionReminderHour = prefs[REGRESSIVE_CONSUMPTION_REMINDER_HOUR] ?: 20,
             regressiveConsumptionReminderMinute = prefs[REGRESSIVE_CONSUMPTION_REMINDER_MINUTE] ?: 0
         )
+    }
+
+    val dismissedConsumptionSuggestionIds: Flow<Set<Long>> = context.dataStore.data.map { prefs ->
+        if (prefs[DISMISSED_CONSUMPTION_SUGGESTIONS_DATE] != LocalDate.now().toString()) {
+            emptySet()
+        } else {
+            prefs[DISMISSED_CONSUMPTION_SUGGESTION_IDS]
+                .orEmpty()
+                .mapNotNull(String::toLongOrNull)
+                .toSet()
+        }
     }
 
     suspend fun setLowStockThreshold(value: Double) {
@@ -69,6 +84,19 @@ class UserPreferencesRepository(private val context: Context) {
         context.dataStore.edit {
             it[REGRESSIVE_CONSUMPTION_REMINDER_HOUR] = hour.coerceIn(0, 23)
             it[REGRESSIVE_CONSUMPTION_REMINDER_MINUTE] = minute.coerceIn(0, 59)
+        }
+    }
+
+    suspend fun dismissConsumptionSuggestion(productId: Long) {
+        val today = LocalDate.now().toString()
+        context.dataStore.edit { prefs ->
+            val dismissedIds = if (prefs[DISMISSED_CONSUMPTION_SUGGESTIONS_DATE] == today) {
+                prefs[DISMISSED_CONSUMPTION_SUGGESTION_IDS].orEmpty()
+            } else {
+                emptySet()
+            }
+            prefs[DISMISSED_CONSUMPTION_SUGGESTIONS_DATE] = today
+            prefs[DISMISSED_CONSUMPTION_SUGGESTION_IDS] = dismissedIds + productId.toString()
         }
     }
 }

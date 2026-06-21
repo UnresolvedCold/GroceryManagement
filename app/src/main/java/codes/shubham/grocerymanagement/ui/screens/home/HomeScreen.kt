@@ -21,6 +21,7 @@ import codes.shubham.grocerymanagement.domain.model.ConsumptionSuggestion
 import codes.shubham.grocerymanagement.domain.model.Product
 import codes.shubham.grocerymanagement.ui.components.CompactProductCard
 import codes.shubham.grocerymanagement.ui.components.ProductCard
+import codes.shubham.grocerymanagement.ui.components.QuantityDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +35,21 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val searchFocusRequester = remember { FocusRequester() }
+    var suggestionToApply by remember { mutableStateOf<ConsumptionSuggestion?>(null) }
+
+    suggestionToApply?.let { suggestion ->
+        QuantityDialog(
+            title = "Apply Suggested Consumption",
+            unit = suggestion.unit,
+            initialQuantity = suggestion.quantity,
+            confirmLabel = "Apply",
+            onConfirm = { quantity, notes ->
+                viewModel.applyConsumptionSuggestion(suggestion, quantity, notes)
+                suggestionToApply = null
+            },
+            onDismiss = { suggestionToApply = null }
+        )
+    }
 
     LaunchedEffect(state.isSearchActive) {
         if (state.isSearchActive) {
@@ -164,7 +180,8 @@ fun HomeScreen(
                 item {
                     ConsumptionSuggestionsCard(
                         suggestions = state.consumptionSuggestions,
-                        onApply = viewModel::applyConsumptionSuggestion,
+                        onEditAndApply = { suggestionToApply = it },
+                        onDismiss = viewModel::dismissConsumptionSuggestion,
                         onApplyAll = viewModel::applyAllConsumptionSuggestions,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
@@ -209,7 +226,8 @@ fun HomeScreen(
 @Composable
 private fun ConsumptionSuggestionsCard(
     suggestions: List<ConsumptionSuggestion>,
-    onApply: (ConsumptionSuggestion) -> Unit,
+    onEditAndApply: (ConsumptionSuggestion) -> Unit,
+    onDismiss: (ConsumptionSuggestion) -> Unit,
     onApplyAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -221,9 +239,9 @@ private fun ConsumptionSuggestionsCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Today's predicted usage", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text("Today's suggested usage", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(
-                        "Based on recent consume history",
+                        "Most-used amount from recent consume history",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -235,32 +253,43 @@ private fun ConsumptionSuggestionsCard(
                 }
             }
 
-            suggestions.take(5).forEach { suggestion ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(suggestion.productName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                        Text(
-                            "${formatQuantity(suggestion.quantity)} ${suggestion.unit}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = { onApply(suggestion) }) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = "Apply ${suggestion.productName}")
+            LazyColumn(
+                modifier = Modifier.height((suggestions.size.coerceAtMost(5) * 56).dp)
+            ) {
+                items(suggestions, key = { it.productId }) { suggestion ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                suggestion.productName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            Text(
+                                "${formatQuantity(suggestion.quantity)} ${suggestion.unit}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        IconButton(onClick = { onEditAndApply(suggestion) }) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit quantity and apply ${suggestion.productName}"
+                            )
+                        }
+                        IconButton(onClick = { onDismiss(suggestion) }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Remove ${suggestion.productName} from today's recommendations"
+                            )
+                        }
                     }
                 }
-            }
-
-            if (suggestions.size > 5) {
-                Text(
-                    "+${suggestions.size - 5} more suggestions",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }

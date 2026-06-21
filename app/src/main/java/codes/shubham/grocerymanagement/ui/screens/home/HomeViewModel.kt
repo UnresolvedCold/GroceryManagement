@@ -51,13 +51,14 @@ class HomeViewModel(
             } else {
                 groceryRepository.getRegressiveConsumptionSuggestions(prefs.regressiveConsumptionLookbackDays)
             }
-        }
-    ) { all, lowStock, expiring, suggestions ->
+        },
+        prefsRepository.dismissedConsumptionSuggestionIds
+    ) { all, lowStock, expiring, suggestions, dismissedSuggestionIds ->
         HomeProductState(
             allProducts = all,
             lowStockProducts = lowStock,
             expiringSoonProducts = expiring,
-            consumptionSuggestions = suggestions
+            consumptionSuggestions = suggestions.filterNot { it.productId in dismissedSuggestionIds }
         )
     }
 
@@ -97,11 +98,16 @@ class HomeViewModel(
         viewModelScope.launch { groceryRepository.deleteProduct(product) }
     }
 
-    fun applyConsumptionSuggestion(suggestion: ConsumptionSuggestion) {
+    fun applyConsumptionSuggestion(
+        suggestion: ConsumptionSuggestion,
+        quantity: Double = suggestion.quantity,
+        notes: String? = null
+    ) {
         viewModelScope.launch {
             groceryRepository.applyRegressiveConsumptionSuggestion(
                 productId = suggestion.productId,
-                quantity = suggestion.quantity
+                quantity = quantity,
+                notes = notes
             )
         }
     }
@@ -115,6 +121,12 @@ class HomeViewModel(
                     quantity = suggestion.quantity
                 )
             }
+        }
+    }
+
+    fun dismissConsumptionSuggestion(suggestion: ConsumptionSuggestion) {
+        viewModelScope.launch {
+            prefsRepository.dismissConsumptionSuggestion(suggestion.productId)
         }
     }
 }

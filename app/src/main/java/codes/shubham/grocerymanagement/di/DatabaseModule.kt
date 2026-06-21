@@ -21,7 +21,7 @@ val appModule = module {
     single { Room.databaseBuilder(androidContext(), GroceryDatabase::class.java, "grocery.db").build() }
     single { get<GroceryDatabase>().productDao() }
     single { get<GroceryDatabase>().transactionDao() }
-    single { GroceryRepository(get(), get()) }
+    single { GroceryRepository(get(), get(), get()) }
     single { UserPreferencesRepository(androidContext()) }
     single { ConsumptionReminderScheduler(androidContext()) }
     single { GeminiService() }

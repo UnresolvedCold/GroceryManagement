@@ -1,5 +1,7 @@
 package codes.shubham.grocerymanagement.data.repository
 
+import androidx.room.withTransaction
+import codes.shubham.grocerymanagement.data.db.GroceryDatabase
 import codes.shubham.grocerymanagement.data.db.dao.ProductDao
 import codes.shubham.grocerymanagement.data.db.dao.TransactionDao
 import codes.shubham.grocerymanagement.data.db.model.ConsumptionSuggestionRow
@@ -15,6 +17,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 class GroceryRepository(
+    private val database: GroceryDatabase,
     private val productDao: ProductDao,
     private val transactionDao: TransactionDao
 ) {
@@ -46,8 +49,7 @@ class GroceryRepository(
         return transactionDao.getConsumptionSuggestionRows(
             sinceTimestamp = sinceTimestamp,
             todayStartTimestamp = todayStartTimestamp,
-            type = TransactionType.CONSUME.name,
-            lookbackDays = lookbackDays.coerceAtLeast(1).toDouble()
+            type = TransactionType.CONSUME.name
         ).map { rows -> rows.mapNotNull(::rowToConsumptionSuggestion) }
     }
 
@@ -56,8 +58,7 @@ class GroceryRepository(
         return transactionDao.getConsumptionSuggestionRowsSnapshot(
             sinceTimestamp = sinceTimestamp,
             todayStartTimestamp = todayStartTimestamp,
-            type = TransactionType.CONSUME.name,
-            lookbackDays = lookbackDays.coerceAtLeast(1).toDouble()
+            type = TransactionType.CONSUME.name
         ).mapNotNull(::rowToConsumptionSuggestion)
     }
 
@@ -108,14 +109,71 @@ class GroceryRepository(
 
     suspend fun applyRegressiveConsumptionSuggestion(
         productId: Long,
-        quantity: Double
+        quantity: Double,
+        notes: String? = null
     ): Double =
         adjustQuantity(
             productId = productId,
             delta = -quantity,
             type = TransactionType.CONSUME,
-            notes = "Regressive consumption suggestion"
+            notes = notes ?: "Consumption suggestion"
         )
+
+    suspend fun addConsumptionEntry(
+        productId: Long,
+        quantity: Double,
+        date: LocalDate,
+        notes: String? = null
+    ): Long = database.withTransaction {
+        val product = productDao.getProductByIdSnapshot(productId) ?: return@withTransaction 0L
+        productDao.updateQuantity(productId, maxOf(0.0, product.quantity - quantity))
+        transactionDao.insertTransaction(
+            TransactionEntity(
+                productId = productId,
+                type = TransactionType.CONSUME.name,
+                quantity = quantity,
+                timestamp = date.toEpochDay() * 86_400_000,
+                notes = notes
+            )
+        )
+    }
+
+    suspend fun updateConsumptionEntry(
+        transactionId: Long,
+        quantity: Double,
+        date: LocalDate,
+        notes: String? = null
+    ): Boolean = database.withTransaction {
+        val transaction = transactionDao.getTransactionById(transactionId)
+            ?.takeIf { it.type == TransactionType.CONSUME.name }
+            ?: return@withTransaction false
+        val product = productDao.getProductByIdSnapshot(transaction.productId)
+            ?: return@withTransaction false
+
+        productDao.updateQuantity(
+            transaction.productId,
+            maxOf(0.0, product.quantity + transaction.quantity - quantity)
+        )
+        transactionDao.updateConsumptionTransaction(
+            transactionId = transactionId,
+            quantity = quantity,
+            timestamp = date.toEpochDay() * 86_400_000,
+            notes = notes
+        )
+        true
+    }
+
+    suspend fun deleteConsumptionEntry(transactionId: Long): Boolean = database.withTransaction {
+        val transaction = transactionDao.getTransactionById(transactionId)
+            ?.takeIf { it.type == TransactionType.CONSUME.name }
+            ?: return@withTransaction false
+        val product = productDao.getProductByIdSnapshot(transaction.productId)
+            ?: return@withTransaction false
+
+        productDao.updateQuantity(transaction.productId, product.quantity + transaction.quantity)
+        transactionDao.deleteTransaction(transactionId)
+        true
+    }
 
     fun getTransactionsForProduct(productId: Long): Flow<List<Transaction>> =
         transactionDao.getTransactionsForProduct(productId).map { list ->
@@ -146,9 +204,7 @@ class GroceryRepository(
     }
 
     private fun rowToConsumptionSuggestion(row: ConsumptionSuggestionRow): ConsumptionSuggestion? {
-        val quantity = row.suggestedQuantity
-            .coerceAtMost(row.currentQuantity)
-            .roundToTwoDecimals()
+        val quantity = row.suggestedQuantity.roundToTwoDecimals()
         if (quantity <= 0.0) return null
         return ConsumptionSuggestion(
             productId = row.productId,

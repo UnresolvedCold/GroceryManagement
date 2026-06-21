@@ -18,6 +18,7 @@ import org.koin.androidx.compose.koinViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import codes.shubham.grocerymanagement.domain.model.Transaction
 import codes.shubham.grocerymanagement.domain.model.TransactionType
+import codes.shubham.grocerymanagement.ui.components.ConsumptionEntryDialog
 import codes.shubham.grocerymanagement.ui.components.ProductImage
 import codes.shubham.grocerymanagement.ui.components.QuantityDialog
 import java.time.format.DateTimeFormatter
@@ -34,6 +35,7 @@ fun ProductDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var consumptionEntryToDelete by remember { mutableStateOf<Transaction?>(null) }
 
     LaunchedEffect(productId) { viewModel.loadProduct(productId) }
 
@@ -51,11 +53,41 @@ fun ProductDetailScreen(
     }
 
     if (state.showConsumeDialog) {
-        QuantityDialog(
+        ConsumptionEntryDialog(
             title = "Consume from Pantry",
             unit = state.product?.unit ?: "pcs",
-            onConfirm = { qty, notes -> viewModel.consumeQuantity(qty, notes) },
+            onConfirm = { qty, notes, date -> viewModel.consumeQuantity(qty, notes, date) },
             onDismiss = viewModel::dismissDialogs
+        )
+    }
+
+    state.editingConsumptionEntry?.let { entry ->
+        ConsumptionEntryDialog(
+            title = "Edit Consumed Entry",
+            unit = state.product?.unit ?: "pcs",
+            entry = entry,
+            onConfirm = { qty, notes, date -> viewModel.updateConsumptionEntry(qty, notes, date) },
+            onDismiss = viewModel::dismissDialogs
+        )
+    }
+
+    consumptionEntryToDelete?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { consumptionEntryToDelete = null },
+            title = { Text("Delete consumed entry?") },
+            text = { Text("This will restore ${entry.quantity} ${state.product?.unit.orEmpty()} to the pantry.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        consumptionEntryToDelete = null
+                        viewModel.deleteConsumptionEntry(entry)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { consumptionEntryToDelete = null }) { Text("Cancel") }
+            }
         )
     }
 
@@ -250,12 +282,34 @@ fun ProductDetailScreen(
                 }
             }
 
-            if (state.transactions.isNotEmpty()) {
-                item {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text("History", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    IconButton(onClick = viewModel::showConsumeDialog) {
+                        Icon(Icons.Default.Add, contentDescription = "Add consumed entry")
+                    }
                 }
-                items(state.transactions.take(20), key = { it.id }) { tx ->
-                    TransactionRow(tx, product.unit)
+            }
+            if (state.transactions.isEmpty()) {
+                item {
+                    Text(
+                        "No history entries yet",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                items(state.transactions, key = { it.id }) { tx ->
+                    TransactionRow(
+                        tx = tx,
+                        unit = product.unit,
+                        onEdit = { viewModel.editConsumptionEntry(tx) },
+                        onDelete = { consumptionEntryToDelete = tx }
+                    )
                 }
             }
         }
@@ -263,7 +317,12 @@ fun ProductDetailScreen(
 }
 
 @Composable
-private fun TransactionRow(tx: Transaction, unit: String) {
+private fun TransactionRow(
+    tx: Transaction,
+    unit: String,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
     val containerColor = when (tx.type) {
         TransactionType.ADD -> MaterialTheme.colorScheme.primaryContainer
         TransactionType.CONSUME -> MaterialTheme.colorScheme.secondaryContainer
@@ -322,6 +381,18 @@ private fun TransactionRow(tx: Transaction, unit: String) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+        if (tx.type == TransactionType.CONSUME) {
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit consumed entry")
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete consumed entry",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }
