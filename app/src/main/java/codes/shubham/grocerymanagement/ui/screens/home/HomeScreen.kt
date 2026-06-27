@@ -29,6 +29,7 @@ fun HomeScreen(
     onNavigateToScan: () -> Unit,
     onNavigateToProduct: (Long) -> Unit,
     onNavigateToAudit: () -> Unit,
+    onNavigateToRecipes: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAddEdit: () -> Unit,
     viewModel: HomeViewModel = koinViewModel()
@@ -84,6 +85,9 @@ fun HomeScreen(
                         }
                         IconButton(onClick = onNavigateToAudit) {
                             Icon(Icons.Default.FactCheck, contentDescription = "Audit inventory")
+                        }
+                        IconButton(onClick = onNavigateToRecipes) {
+                            Icon(Icons.Default.Restaurant, contentDescription = "Recipes")
                         }
                         IconButton(onClick = onNavigateToSettings) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings")

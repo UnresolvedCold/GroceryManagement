@@ -10,5 +10,7 @@ data class Transaction(
     val type: TransactionType,
     val quantity: Double,
     val date: LocalDate = LocalDate.now(),
-    val notes: String? = null
+    val notes: String? = null,
+    val recipeId: Long? = null,
+    val recipeName: String? = null
 )

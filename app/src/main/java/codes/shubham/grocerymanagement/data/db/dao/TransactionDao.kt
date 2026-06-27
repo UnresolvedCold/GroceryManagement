@@ -2,14 +2,29 @@ package codes.shubham.grocerymanagement.data.db.dao
 
 import androidx.room.*
 import codes.shubham.grocerymanagement.data.db.model.ConsumptionSuggestionRow
+import codes.shubham.grocerymanagement.data.db.model.TransactionRow
 import codes.shubham.grocerymanagement.data.db.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TransactionDao {
 
-    @Query("SELECT * FROM transactions WHERE product_id = :productId ORDER BY timestamp DESC")
-    fun getTransactionsForProduct(productId: Long): Flow<List<TransactionEntity>>
+    @Query("""
+        SELECT
+            t.id AS id,
+            t.product_id AS productId,
+            t.type AS type,
+            t.quantity AS quantity,
+            t.timestamp AS timestamp,
+            t.notes AS notes,
+            t.recipe_id AS recipeId,
+            r.name AS recipeName
+        FROM transactions t
+        LEFT JOIN recipes r ON r.id = t.recipe_id
+        WHERE t.product_id = :productId
+        ORDER BY t.timestamp DESC
+    """)
+    fun getTransactionsForProduct(productId: Long): Flow<List<TransactionRow>>
 
     @Query("SELECT * FROM transactions WHERE id = :transactionId")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?

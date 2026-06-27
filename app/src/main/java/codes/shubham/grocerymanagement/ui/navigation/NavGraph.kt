@@ -10,6 +10,7 @@ import codes.shubham.grocerymanagement.ui.screens.addedit.AddEditProductScreen
 import codes.shubham.grocerymanagement.ui.screens.audit.AuditScreen
 import codes.shubham.grocerymanagement.ui.screens.home.HomeScreen
 import codes.shubham.grocerymanagement.ui.screens.product.ProductDetailScreen
+import codes.shubham.grocerymanagement.ui.screens.recipe.RecipesScreen
 import codes.shubham.grocerymanagement.ui.screens.scan.ScanScreen
 import codes.shubham.grocerymanagement.ui.screens.settings.SettingsScreen
 
@@ -24,6 +25,7 @@ fun NavGraph() {
                 onNavigateToScan = { navController.navigate(Screen.Scan.route) },
                 onNavigateToProduct = { id -> navController.navigate(Screen.ProductDetail.createRoute(id)) },
                 onNavigateToAudit = { navController.navigate(Screen.Audit.route) },
+                onNavigateToRecipes = { navController.navigate(Screen.Recipes.route) },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToAddEdit = { navController.navigate(Screen.AddEditProduct.createRoute()) }
             )
@@ -71,6 +73,10 @@ fun NavGraph() {
 
         composable(Screen.Audit.route) {
             AuditScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.Recipes.route) {
+            RecipesScreen(onNavigateBack = { navController.popBackStack() })
         }
     }
 }

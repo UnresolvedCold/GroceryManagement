@@ -374,13 +374,20 @@ private fun TransactionRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-        tx.notes?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            tx.recipeName?.let {
+                Text(
+                    "Recipe: $it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            tx.notes?.takeIf { it.isNotBlank() && it != "Recipe: ${tx.recipeName}" }?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         if (tx.type == TransactionType.CONSUME) {
             IconButton(onClick = onEdit) {

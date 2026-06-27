@@ -11,6 +11,7 @@ import codes.shubham.grocerymanagement.ui.screens.addedit.AddEditProductViewMode
 import codes.shubham.grocerymanagement.ui.screens.audit.AuditViewModel
 import codes.shubham.grocerymanagement.ui.screens.home.HomeViewModel
 import codes.shubham.grocerymanagement.ui.screens.product.ProductDetailViewModel
+import codes.shubham.grocerymanagement.ui.screens.recipe.RecipesViewModel
 import codes.shubham.grocerymanagement.ui.screens.scan.ScanViewModel
 import codes.shubham.grocerymanagement.ui.screens.settings.SettingsViewModel
 import org.koin.android.ext.koin.androidContext
@@ -18,10 +19,15 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    single { Room.databaseBuilder(androidContext(), GroceryDatabase::class.java, "grocery.db").build() }
+    single {
+        Room.databaseBuilder(androidContext(), GroceryDatabase::class.java, "grocery.db")
+            .addMigrations(GroceryDatabase.MIGRATION_1_2)
+            .build()
+    }
     single { get<GroceryDatabase>().productDao() }
     single { get<GroceryDatabase>().transactionDao() }
-    single { GroceryRepository(get(), get(), get()) }
+    single { get<GroceryDatabase>().recipeDao() }
+    single { GroceryRepository(get(), get(), get(), get()) }
     single { UserPreferencesRepository(androidContext()) }
     single { ConsumptionReminderScheduler(androidContext()) }
     single { GeminiService() }
@@ -31,6 +37,7 @@ val appModule = module {
     viewModel { ScanViewModel(get(), get(), get(), get()) }
     viewModel { AddEditProductViewModel(get(), get()) }
     viewModel { ProductDetailViewModel(get()) }
+    viewModel { RecipesViewModel(get()) }
     viewModel { AuditViewModel(get()) }
     viewModel { SettingsViewModel(get(), get()) }
 }

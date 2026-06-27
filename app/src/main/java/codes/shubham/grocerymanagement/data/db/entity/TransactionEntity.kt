@@ -24,5 +24,7 @@ data class TransactionEntity(
     val type: String,
     val quantity: Double,
     val timestamp: Long = System.currentTimeMillis(),
-    val notes: String? = null
+    val notes: String? = null,
+    @ColumnInfo(name = "recipe_id")
+    val recipeId: Long? = null
 )
