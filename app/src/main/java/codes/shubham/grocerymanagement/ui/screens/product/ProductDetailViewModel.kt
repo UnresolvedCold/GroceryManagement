@@ -29,6 +29,8 @@ class ProductDetailViewModel(
     private val _showConsumeDialog = MutableStateFlow(false)
     private val _editingConsumptionEntry = MutableStateFlow<Transaction?>(null)
     private val _deleted = MutableStateFlow(false)
+    private val _messages = MutableSharedFlow<String>()
+    val messages = _messages.asSharedFlow()
 
     private val dialogState = combine(
         _showAddDialog,
@@ -77,16 +79,20 @@ class ProductDetailViewModel(
 
     fun addQuantity(amount: Double, notes: String?) {
         val id = _productId.value ?: return
+        val unit = uiState.value.product?.unit.orEmpty()
         viewModelScope.launch {
             groceryRepository.adjustQuantity(id, amount, TransactionType.ADD, notes)
+            _messages.emit("Added ${amount.formatQuantity()} $unit".trim())
         }
         dismissDialogs()
     }
 
     fun consumeQuantity(amount: Double, notes: String?, date: LocalDate = LocalDate.now()) {
         val id = _productId.value ?: return
+        val unit = uiState.value.product?.unit.orEmpty()
         viewModelScope.launch {
             groceryRepository.addConsumptionEntry(id, amount, date, notes)
+            _messages.emit("Consumed ${amount.formatQuantity()} $unit".trim())
         }
         dismissDialogs()
     }
@@ -101,6 +107,7 @@ class ProductDetailViewModel(
         val entry = _editingConsumptionEntry.value ?: return
         viewModelScope.launch {
             groceryRepository.updateConsumptionEntry(entry.id, amount, date, notes)
+            _messages.emit("Consumed entry updated")
         }
         dismissDialogs()
     }
@@ -109,6 +116,7 @@ class ProductDetailViewModel(
         if (entry.type != TransactionType.CONSUME) return
         viewModelScope.launch {
             groceryRepository.deleteConsumptionEntry(entry.id)
+            _messages.emit("Consumed entry deleted")
         }
     }
 
@@ -120,4 +128,7 @@ class ProductDetailViewModel(
             }
         }
     }
+
+    private fun Double.formatQuantity(): String =
+        if (this == toLong().toDouble()) toLong().toString() else "%.2f".format(this)
 }

@@ -32,11 +32,15 @@ fun HomeScreen(
     onNavigateToRecipes: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToAddEdit: () -> Unit,
+    externalFeedbackMessage: String? = null,
+    onExternalFeedbackShown: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val searchFocusRequester = remember { FocusRequester() }
+    val snackbarHostState = remember { SnackbarHostState() }
     var suggestionToApply by remember { mutableStateOf<ConsumptionSuggestion?>(null) }
+    var showApplyAllConfirm by remember { mutableStateOf(false) }
 
     suggestionToApply?.let { suggestion ->
         QuantityDialog(
@@ -50,6 +54,36 @@ fun HomeScreen(
             },
             onDismiss = { suggestionToApply = null }
         )
+    }
+
+    if (showApplyAllConfirm) {
+        AlertDialog(
+            onDismissRequest = { showApplyAllConfirm = false },
+            title = { Text("Apply all suggestions?") },
+            text = { Text("This will consume ${state.consumptionSuggestions.size} suggested item(s) from your pantry.") },
+            confirmButton = {
+                Button(onClick = {
+                    showApplyAllConfirm = false
+                    viewModel.applyAllConsumptionSuggestions()
+                }) { Text("Apply all") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showApplyAllConfirm = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.messages.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    LaunchedEffect(externalFeedbackMessage) {
+        externalFeedbackMessage?.let {
+            viewModel.showExternalMessage(it)
+            onExternalFeedbackShown()
+        }
     }
 
     LaunchedEffect(state.isSearchActive) {
@@ -107,7 +141,8 @@ fun HomeScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         if (state.isLoading) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -186,7 +221,7 @@ fun HomeScreen(
                         suggestions = state.consumptionSuggestions,
                         onEditAndApply = { suggestionToApply = it },
                         onDismiss = viewModel::dismissConsumptionSuggestion,
-                        onApplyAll = viewModel::applyAllConsumptionSuggestions,
+                        onApplyAll = { showApplyAllConfirm = true },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
                     Spacer(Modifier.height(16.dp))

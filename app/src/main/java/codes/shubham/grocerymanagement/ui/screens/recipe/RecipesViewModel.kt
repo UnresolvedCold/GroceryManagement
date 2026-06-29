@@ -6,9 +6,11 @@ import codes.shubham.grocerymanagement.data.repository.GroceryRepository
 import codes.shubham.grocerymanagement.domain.model.Product
 import codes.shubham.grocerymanagement.domain.model.Recipe
 import codes.shubham.grocerymanagement.domain.model.RecipeIngredientInput
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -39,6 +41,8 @@ class RecipesViewModel(
     private val groceryRepository: GroceryRepository
 ) : ViewModel() {
     private val _editor = MutableStateFlow<RecipeEditorState?>(null)
+    private val _messages = MutableSharedFlow<String>()
+    val messages = _messages.asSharedFlow()
     private var nextIngredientId = 1
 
     val uiState: StateFlow<RecipesUiState> = combine(
@@ -157,19 +161,22 @@ class RecipesViewModel(
                 ingredients = ingredients
             )
             _editor.value = null
+            _messages.emit("Recipe saved")
         }
     }
 
     fun deleteRecipe(recipe: Recipe) {
         viewModelScope.launch {
             groceryRepository.deleteRecipe(recipe)
+            _messages.emit("Recipe deleted")
         }
     }
 
     fun consumeRecipe(recipe: Recipe) {
         if (!recipe.canMake) return
         viewModelScope.launch {
-            groceryRepository.consumeRecipe(recipe.id)
+            val applied = groceryRepository.consumeRecipe(recipe.id)
+            _messages.emit(if (applied) "Recipe applied" else "Recipe can no longer be applied")
         }
     }
 

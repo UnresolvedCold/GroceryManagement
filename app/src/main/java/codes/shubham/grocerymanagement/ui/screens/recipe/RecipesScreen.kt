@@ -70,7 +70,15 @@ fun RecipesScreen(
     viewModel: RecipesViewModel = koinViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
     var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }
+    var recipeToApply by remember { mutableStateOf<Recipe?>(null) }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.messages.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
 
     state.editor?.let { editor ->
         RecipeEditorDialog(
@@ -104,6 +112,25 @@ fun RecipesScreen(
         )
     }
 
+    recipeToApply?.let { recipe ->
+        AlertDialog(
+            onDismissRequest = { recipeToApply = null },
+            title = { Text("Apply recipe?") },
+            text = {
+                Text("This will deduct ${recipe.ingredients.size} ingredient(s) from your pantry for ${recipe.name}.")
+            },
+            confirmButton = {
+                Button(onClick = {
+                    recipeToApply = null
+                    viewModel.consumeRecipe(recipe)
+                }) { Text("Apply") }
+            },
+            dismissButton = {
+                TextButton(onClick = { recipeToApply = null }) { Text("Cancel") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -119,7 +146,8 @@ fun RecipesScreen(
             FloatingActionButton(onClick = viewModel::startAddRecipe) {
                 Icon(Icons.Default.Add, contentDescription = "Add recipe")
             }
-        }
+        },
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) }
     ) { padding ->
         when {
             state.isLoading -> {
@@ -142,7 +170,7 @@ fun RecipesScreen(
                     items(state.recipes, key = { it.id }) { recipe ->
                         RecipeCard(
                             recipe = recipe,
-                            onConsume = { viewModel.consumeRecipe(recipe) },
+                            onConsume = { recipeToApply = recipe },
                             onEdit = { viewModel.startEditRecipe(recipe) },
                             onDelete = { recipeToDelete = recipe }
                         )

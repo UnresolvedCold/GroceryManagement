@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -49,6 +50,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -67,12 +71,32 @@ fun AuditScreen(
     viewModel: AuditViewModel = koinViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showSaveConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.feedbackMessage) {
         if (state.feedbackMessage != null) {
             kotlinx.coroutines.delay(2500)
             viewModel.clearFeedback()
         }
+    }
+
+    if (showSaveConfirm) {
+        AlertDialog(
+            onDismissRequest = { showSaveConfirm = false },
+            title = { Text("Save audit?") },
+            text = {
+                Text("This will update ${state.checkedCount} checked item(s), including ${state.changedCount} changed item(s).")
+            },
+            confirmButton = {
+                Button(onClick = {
+                    showSaveConfirm = false
+                    viewModel.saveAudit()
+                }) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveConfirm = false }) { Text("Cancel") }
+            }
+        )
     }
 
     Scaffold(
@@ -107,7 +131,7 @@ fun AuditScreen(
                         )
                     } else if (state.isReviewing) {
                         TextButton(
-                            onClick = viewModel::saveAudit,
+                            onClick = { showSaveConfirm = true },
                             enabled = state.hasAuditedItems && state.invalidCount == 0
                         ) {
                             Icon(Icons.Default.Save, contentDescription = null)

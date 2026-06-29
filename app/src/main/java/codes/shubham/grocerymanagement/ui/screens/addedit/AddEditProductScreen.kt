@@ -27,7 +27,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun AddEditProductScreen(
     productId: Long?,
-    onSaved: () -> Unit,
+    onSaved: (String) -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: AddEditProductViewModel = koinViewModel()
 ) {
@@ -39,7 +39,9 @@ fun AddEditProductScreen(
     }
 
     LaunchedEffect(state.savedSuccessfully) {
-        if (state.savedSuccessfully) onSaved()
+        if (state.savedSuccessfully) {
+            onSaved(if (state.isEditMode) "Product updated" else "Product added")
+        }
     }
 
     var showDatePicker by remember { mutableStateOf(false) }

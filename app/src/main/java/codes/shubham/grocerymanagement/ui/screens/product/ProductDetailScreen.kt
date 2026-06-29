@@ -30,17 +30,24 @@ import java.time.LocalDate
 fun ProductDetailScreen(
     productId: Long,
     onNavigateToEdit: (Long) -> Unit,
-    onNavigateBack: () -> Unit,
+    onNavigateBack: (String?) -> Unit,
     viewModel: ProductDetailViewModel = koinViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var consumptionEntryToDelete by remember { mutableStateOf<Transaction?>(null) }
 
     LaunchedEffect(productId) { viewModel.loadProduct(productId) }
 
     LaunchedEffect(state.deleted) {
-        if (state.deleted) onNavigateBack()
+        if (state.deleted) onNavigateBack("Product deleted")
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.messages.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
     }
 
     if (state.showAddDialog) {
@@ -111,7 +118,7 @@ fun ProductDetailScreen(
             TopAppBar(
                 title = { Text(state.product?.name ?: "Product", maxLines = 1) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, "Back") }
+                    IconButton(onClick = { onNavigateBack(null) }) { Icon(Icons.Default.ArrowBack, "Back") }
                 },
                 actions = {
                     IconButton(onClick = { state.product?.let { onNavigateToEdit(it.id) } }) {
@@ -122,7 +129,8 @@ fun ProductDetailScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         val product = state.product
         if (product == null) {

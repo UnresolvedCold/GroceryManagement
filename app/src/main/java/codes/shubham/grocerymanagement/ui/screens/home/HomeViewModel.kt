@@ -38,6 +38,8 @@ class HomeViewModel(
 ) : ViewModel() {
 
     private val _searchState = MutableStateFlow(SearchState())
+    private val _messages = MutableSharedFlow<String>()
+    val messages = _messages.asSharedFlow()
 
     private val productState = combine(
         groceryRepository.getAllProducts(),
@@ -109,6 +111,7 @@ class HomeViewModel(
                 quantity = quantity,
                 notes = notes
             )
+            _messages.emit("Suggestion applied")
         }
     }
 
@@ -121,12 +124,20 @@ class HomeViewModel(
                     quantity = suggestion.quantity
                 )
             }
+            _messages.emit("Applied ${suggestions.size} suggestion(s)")
         }
     }
 
     fun dismissConsumptionSuggestion(suggestion: ConsumptionSuggestion) {
         viewModelScope.launch {
             prefsRepository.dismissConsumptionSuggestion(suggestion.productId)
+            _messages.emit("Recommendation removed for today")
+        }
+    }
+
+    fun showExternalMessage(message: String) {
+        viewModelScope.launch {
+            _messages.emit(message)
         }
     }
 }
